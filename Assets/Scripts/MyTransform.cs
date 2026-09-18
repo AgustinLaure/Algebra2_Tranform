@@ -1,35 +1,48 @@
 
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine.Internal;
 using CustomMath;
+using UnityEngine;
 
 public class MyTransform : IEnumerable
 {
-   //private class Enumerator : IEnumerator
-   //{
-   //    private MyTransform outer;
-   //
-   //    private int currentIndex = -1;
-   //
-   //    public object Current => outer.GetChild(currentIndex);
-   //
-   //    internal Enumerator(MyTransform outer)
-   //    {
-   //        this.outer = outer;
-   //    }
-   //
-   //    public bool MoveNext()
-   //    {
-   //        int childCount = outer.childCount;
-   //        return ++currentIndex < childCount;
-   //    }
-   //
-   //    public void Reset()
-   //    {
-   //        currentIndex = -1;
-   //    }
-   //}
+    //private class Enumerator : IEnumerator
+    //{
+    //    private MyTransform outer;
+    //
+    //    private int currentIndex = -1;
+    //
+    //    public object Current => outer.GetChild(currentIndex);
+    //
+    //    internal Enumerator(MyTransform outer)
+    //    {
+    //        this.outer = outer;
+    //    }
+    //
+    //    public bool MoveNext()
+    //    {
+    //        int childCount = outer.childCount;
+    //        return ++currentIndex < childCount;
+    //    }
+    //
+    //    public void Reset()
+    //    {
+    //        currentIndex = -1;
+    //    }
+    //}
+
+    private Mat4x4 _localTRS;
+    private Mat4x4 _worldTRS;
+    private bool _isDirty = false;
+    private bool _hasChanged = false;
+
+    private Vec3 _localPosition;
+    private Quat _localRotation;
+    private Vec3 _localScale;
+    private MyTransform _parent;
+    private List<MyTransform> _children = new List<MyTransform>();
 
     //
     // Resumen:
@@ -38,11 +51,22 @@ public class MyTransform : IEnumerable
     {
         get
         {
-
+            return localToWorldMatrix.GetPosition();
         }
         set
         {
-            
+            if (parent != null)
+            {
+                Mat4x4 parentWorldToLocal = parent.worldToLocalMatrix;
+
+                Vector4 localPos = parentWorldToLocal * new Vector4(value.x, value.y, value.z, 1f);
+
+                localPosition = new Vec3(localPos.x, localPos.y, localPos.z);
+            }
+            else
+            {
+                localPosition = value;
+            }
         }
     }
 
@@ -53,24 +77,12 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
-            
+            return _localPosition;
         }
         set
         {
-            
-            
-            
-            
-            
-
-            
+            _localPosition = value;
+            SetDirty();
         }
     }
 
@@ -81,11 +93,22 @@ public class MyTransform : IEnumerable
     {
         get
         {
-           
+            return localToWorldMatrix.rotation.eulerAngles;
         }
         set
         {
-            
+            if (parent != null)
+            {
+                Quat parentWorldToLocalRot = Quat.Inverse(parent.rotation);
+
+                Quat localRot = parentWorldToLocalRot * Quat.Euler(value);
+
+                localRotation = localRot;
+            }
+            else
+            {
+                localRotation = Quat.Euler(value);
+            }
         }
     }
 
@@ -96,11 +119,12 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
+            return _localRotation.eulerAngles;
         }
         set
         {
-            
+            _localRotation = Quat.Euler(value);
+            SetDirty();
         }
     }
 
@@ -111,26 +135,30 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
+            return rotation * Vec3.Right;
         }
         set
         {
-            
+            Quat rotationOffset = Quat.FromToRotation(right, value);
+
+            rotation = rotationOffset * rotation;
         }
     }
 
     //
     // Resumen:
     //     The green axis of the transform in world space.
-    public Vector3 up
+    public Vec3 up
     {
         get
         {
-            return rotation * Vector3.up;
+            return rotation * Vec3.Up;
         }
         set
         {
-            rotation = Quaternion.FromToRotation(Vector3.up, value);
+            Quat rotationOffset = Quat.FromToRotation(up, value);
+
+            rotation = rotationOffset * rotation;
         }
     }
 
@@ -142,11 +170,13 @@ public class MyTransform : IEnumerable
     {
         get
         {
-           
+            return rotation * Vec3.Forward;
         }
         set
         {
-           
+            Quat rotationOffset = Quat.FromToRotation(forward, value);
+
+            rotation = rotationOffset * rotation;
         }
     }
 
@@ -157,24 +187,22 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
-            
+            return localToWorldMatrix.rotation;
         }
         set
         {
-            
-            
-            
-            
-            
+            if (parent != null)
+            {
+                Quat parentWorldToLocalRot = Quat.Inverse(parent.rotation);
 
-            
+                Quat localRot = parentWorldToLocalRot * value;
+
+                localRotation = localRot;
+            }
+            else
+            {
+                localRotation = value;
+            }
         }
     }
 
@@ -185,24 +213,12 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
-            
+            return _localRotation;
         }
         set
         {
-            
-            
-            
-            
-            
-
-            
+            _localRotation = value;
+            SetDirty();
         }
     }
 
@@ -213,24 +229,12 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
-            
+            return _localScale;
         }
         set
         {
-           
-           
-           
-           
-           
-
-           
+            _localScale = value;
+            SetDirty();
         }
     }
 
@@ -241,16 +245,40 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
+            return _parent;
         }
         set
         {
-            
-            
-            
-            
+            Mat4x4 worldMatrix = localToWorldMatrix;
 
-            
+            if (_parent != null)
+            {
+                _parent._children.Remove(this);
+            }
+
+            _parent = value;
+
+            if (_parent != null)
+            {
+                Mat4x4 newLocalMat;
+
+                Mat4x4 parentWorldToLocal = _parent.worldToLocalMatrix;
+                newLocalMat = parentWorldToLocal * worldMatrix;
+
+                _localPosition = newLocalMat.GetPosition();
+                _localRotation = newLocalMat.rotation;
+                _localScale = newLocalMat.lossyScale;
+
+                _parent._children.Add(this);
+            }
+            else
+            {
+                _localPosition = worldMatrix.GetPosition();
+                _localRotation = worldMatrix.rotation;
+                _localScale = worldMatrix.lossyScale;
+            }
+
+            SetDirty();
         }
     }
 
@@ -261,14 +289,7 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
-            
+            return Mat4x4.Inverse(localToWorldMatrix);
         }
     }
 
@@ -279,14 +300,23 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
-            
-            
-            
-            
+            if (hasChanged)
+            {
+                Mat4x4 cleanLocal = Mat4x4.TRS(localPosition, localRotation, localScale);
 
-            
-            
+                if (parent != null)
+                {
+                    _worldTRS = parent.localToWorldMatrix * cleanLocal;
+                }
+                else
+                {
+                    _worldTRS = cleanLocal;
+                }
+
+                hasChanged = false;
+            }
+
+            return _worldTRS;
         }
     }
 
@@ -300,16 +330,10 @@ public class MyTransform : IEnumerable
     //     The number of children the parent Transform has.
     public int childCount
     {
-        
+
         get
         {
-           
-           
-           
-           
-           
-
-           
+            return _children.Count;
         }
     }
 
@@ -320,42 +344,23 @@ public class MyTransform : IEnumerable
     {
         get
         {
-           
-           
-           
-           
-           
-
-           
-           
+            return localToWorldMatrix.lossyScale;
         }
     }
 
     //
     // Resumen:
     //     Has the transform changed since the last time the flag was set to 'false'?
-    
+
     public bool hasChanged
     {
         get
         {
-            
-            
-            
-            
-            
-
-            
+            return _hasChanged;
         }
         set
         {
-           
-           
-           
-           
-           
-
-           
+            _hasChanged = value;
         }
     }
 
@@ -366,29 +371,47 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            
+            return _children.Capacity;
         }
         set
         {
-           
+            _children.Capacity = value;
         }
     }
 
     //
     // Resumen:
     //     The number of transforms in the transform's hierarchy data structure.
-    public int hierarchyCount => ;
+    public int hierarchyCount
+    {
+        get
+        {
+            if (_children.Count <= 0)
+            {
+                return 0;
+            }
 
-    
+            int count = _children.Count;
+
+            foreach (MyTransform child in _children)
+            {
+                count += child.hierarchyCount;
+            }
+
+            return count;
+        }
+    }
+
+
     private MyTransform GetParent()
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     //
@@ -407,7 +430,7 @@ public class MyTransform : IEnumerable
     //   p:
     public void SetParent(MyTransform p)
     {
-        
+
     }
 
     //
@@ -424,16 +447,16 @@ public class MyTransform : IEnumerable
     //
     //
     //   p:
-   
+
     public void SetParent(MyTransform parent, bool worldPositionStays)
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     //
@@ -448,13 +471,13 @@ public class MyTransform : IEnumerable
     //     The world space rotation to apply to the transform.
     public void SetPositionAndRotation(Vec3 position, Quat rotation)
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     //
@@ -470,35 +493,35 @@ public class MyTransform : IEnumerable
     //     The local space rotation to apply to the transform.
     public void SetLocalPositionAndRotation(Vec3 localPosition, Quat localRotation)
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     public void GetPositionAndRotation(out Vec3 position, out Quat rotation)
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     public void GetLocalPositionAndRotation(out Vec3 localPosition, out Quat localRotation)
     {
-        
-        
-        
-        
-        
 
-        
+
+
+
+
+
+
     }
 
     //
@@ -514,14 +537,14 @@ public class MyTransform : IEnumerable
     //     The coordinate system in which to apply the translation.
     public void Translate(Vec3 translation, [DefaultValue("Space.Self")] Space relativeTo)
     {
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
     }
 
     //
@@ -581,7 +604,7 @@ public class MyTransform : IEnumerable
     //     The coordinate system in which the translation is applied.
     public void Translate(float x, float y, float z)
     {
-        
+
     }
 
     //
@@ -597,14 +620,14 @@ public class MyTransform : IEnumerable
     //     Defines the coordinate system used for the translation.
     public void Translate(Vec3 translation, MyTransform relativeTo)
     {
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
     }
 
     //
@@ -626,7 +649,7 @@ public class MyTransform : IEnumerable
     //     Defines the coordinate system used for the translation.
     public void Translate(float x, float y, float z, MyTransform relativeTo)
     {
-       
+
     }
 
     //
@@ -644,15 +667,15 @@ public class MyTransform : IEnumerable
     //     or relative to the Scene in world space.
     public void Rotate(Vec3 eulers, [DefaultValue("Space.Self")] Space relativeTo)
     {
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
+
     }
 
     //
@@ -666,7 +689,7 @@ public class MyTransform : IEnumerable
     //     The rotation to apply in euler angles.
     public void Rotate(Vec3 eulers)
     {
-        
+
     }
 
     //
@@ -690,7 +713,7 @@ public class MyTransform : IEnumerable
     //     or relative to the Scene in world space.
     public void Rotate(float xAngle, float yAngle, float zAngle, [DefaultValue("Space.Self")] Space relativeTo)
     {
-        
+
     }
 
     //
@@ -710,7 +733,7 @@ public class MyTransform : IEnumerable
     //     Degrees to rotate the GameObject around the Z axis.
     public void Rotate(float xAngle, float yAngle, float zAngle)
     {
-        
+
     }
 
 
@@ -731,14 +754,14 @@ public class MyTransform : IEnumerable
     //     or relative to the Scene in world space.
     public void Rotate(Vec3 axis, float angle, [DefaultValue("Space.Self")] Space relativeTo)
     {
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
     }
 
     //
@@ -754,7 +777,7 @@ public class MyTransform : IEnumerable
     //     The degrees of rotation to apply.
     public void Rotate(Vec3 axis, float angle)
     {
-        
+
     }
 
     //
@@ -774,13 +797,13 @@ public class MyTransform : IEnumerable
     //     The angle to rotate, provided in degrees.
     public void RotateAround(Vec3 point, Vec3 axis, float angle)
     {
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
     }
 
     //
@@ -796,10 +819,10 @@ public class MyTransform : IEnumerable
     //     Vector specifying the upward direction.
     public void LookAt(MyTransform target, [DefaultValue("Vector3.up")] Vec3 worldUp)
     {
-        
-        
-        
-        
+
+
+
+
     }
 
     //
@@ -815,10 +838,10 @@ public class MyTransform : IEnumerable
     //     Vector specifying the upward direction.
     public void LookAt(MyTransform target)
     {
-        
-        
-        
-        
+
+
+
+
     }
 
     //
@@ -848,7 +871,7 @@ public class MyTransform : IEnumerable
     //     Vector specifying the upward direction.
     public void LookAt(Vec3 worldPosition)
     {
-        
+
     }
 
     //
@@ -859,14 +882,14 @@ public class MyTransform : IEnumerable
     //   direction:
     public Vec3 TransformDirection(Vec3 direction)
     {
-        
-        
-        
-        
-        
 
-        
-        
+
+
+
+
+
+
+
     }
 
     //
@@ -881,17 +904,17 @@ public class MyTransform : IEnumerable
     //   z:
     public Vec3 TransformDirection(float x, float y, float z)
     {
-        
+
     }
 
     public void TransformDirections(ReadOnlySpan<Vec3> directions, Span<Vec3> transformedDirections)
     {
-        
+
     }
 
     public void TransformDirections(Span<Vec3> directions)
     {
-        
+
     }
 
     //
@@ -903,7 +926,7 @@ public class MyTransform : IEnumerable
     //   direction:
     public Vec3 InverseTransformDirection(Vec3 direction)
     {
-        
+
     }
 
     //
@@ -919,18 +942,18 @@ public class MyTransform : IEnumerable
     //   z:
     public Vec3 InverseTransformDirection(float x, float y, float z)
     {
-        
+
     }
 
 
     public void InverseTransformDirections(ReadOnlySpan<Vec3> directions, Span<Vec3> transformedDirections)
     {
-        
+
     }
 
     public void InverseTransformDirections(Span<Vec3> directions)
     {
-       
+
     }
 
     //
@@ -945,14 +968,14 @@ public class MyTransform : IEnumerable
     //     The transformed vector, in world space.
     public Vec3 TransformVector(Vec3 vector)
     {
-        
-        
-        
-        
-        
 
-        
-        
+
+
+
+
+
+
+
     }
 
     //
@@ -973,18 +996,18 @@ public class MyTransform : IEnumerable
     //     The transformed vector, in world space.
     public Vec3 TransformVector(float x, float y, float z)
     {
-        
+
     }
 
 
     public void TransformVectors(ReadOnlySpan<Vec3> vectors, Span<Vec3> transformedVectors)
     {
-        
+
     }
 
     public void TransformVectors(Span<Vec3> vectors)
     {
-        
+
     }
 
     //
@@ -1000,7 +1023,7 @@ public class MyTransform : IEnumerable
     //     The transformed vector, in local space.
     public Vec3 InverseTransformVector(Vec3 vector)
     {
-        
+
     }
 
     //
@@ -1022,7 +1045,7 @@ public class MyTransform : IEnumerable
     //     The transformed vector, in local space.
     public Vec3 InverseTransformVector(float x, float y, float z)
     {
-        
+
     }
 
     public void InverseTransformVectors(ReadOnlySpan<Vec3> vectors, Span<Vec3> transformedVectors)
@@ -1032,7 +1055,7 @@ public class MyTransform : IEnumerable
 
     public void InverseTransformVectors(Span<Vec3> vectors)
     {
-       
+
     }
 
     //
@@ -1043,7 +1066,7 @@ public class MyTransform : IEnumerable
     //   position:
     public Vec3 TransformPoint(Vec3 position)
     {
-       
+
     }
 
     //
@@ -1058,18 +1081,18 @@ public class MyTransform : IEnumerable
     //   z:
     public Vec3 TransformPoint(float x, float y, float z)
     {
-        
+
     }
 
-    
+
     public void TransformPoints(ReadOnlySpan<Vec3> positions, Span<Vec3> transformedPositions)
     {
-        
+
     }
 
     public void TransformPoints(Span<Vec3> positions)
     {
-        
+
     }
 
     //
@@ -1080,7 +1103,7 @@ public class MyTransform : IEnumerable
     //   position:
     public Vec3 InverseTransformPoint(Vec3 position)
     {
-       
+
     }
 
     //
@@ -1095,12 +1118,12 @@ public class MyTransform : IEnumerable
     //   z:
     public Vec3 InverseTransformPoint(float x, float y, float z)
     {
-        
+
     }
 
     public void InverseTransformPoints(ReadOnlySpan<Vec3> positions, Span<Vec3> transformedPositions)
     {
-        
+
     }
 
     public void InverseTransformPoints(Span<Vec3> positions)
@@ -1110,16 +1133,16 @@ public class MyTransform : IEnumerable
 
     private MyTransform GetRoot()
     {
-        
+
     }
 
     //
     // Resumen:
     //     Unparents all of the target object's children.
-   
+
     public void DetachChildren()
     {
-       
+
     }
 
     //
@@ -1127,7 +1150,7 @@ public class MyTransform : IEnumerable
     //     Move the transform to the start of the local transform list.
     public void SetAsFirstSibling()
     {
-        
+
     }
 
     //
@@ -1135,7 +1158,7 @@ public class MyTransform : IEnumerable
     //     Move the transform to the end of the local transform list.
     public void SetAsLastSibling()
     {
-       
+
     }
 
     //
@@ -1147,7 +1170,7 @@ public class MyTransform : IEnumerable
     //     Index to set.
     public void SetSiblingIndex(int index)
     {
-       
+
     }
 
 
@@ -1159,12 +1182,12 @@ public class MyTransform : IEnumerable
     //     The index of this Transform, relative to its siblings.
     public int GetSiblingIndex()
     {
-      
+
     }
 
     private unsafe MyTransform FindRelativeTransformWithPath(string path, [DefaultValue("false")] bool isActiveOnly)
     {
-        
+
     }
 
     //
@@ -1180,9 +1203,19 @@ public class MyTransform : IEnumerable
     //     The found child transform. Null if child with matching name isn't found.
     public MyTransform Find(string n)
     {
-        
+
     }
 
+    private void SetDirty()
+    {
+        hasChanged = true;
+        _hasChanged = true;
+
+        foreach (MyTransform child in _children)
+        {
+            child.SetDirty();
+        }
+    }
 
     //
     // Resumen:
@@ -1190,17 +1223,17 @@ public class MyTransform : IEnumerable
     //
     // Parámetros:
     //   parent:
-    
+
     public bool IsChildOf([NotNull] MyTransform parent)
     {
-        
+
     }
 
     public IEnumerator GetEnumerator()
     {
-        
+
     }
-    
+
     //
     // Resumen:
     //     Returns a transform child by index.
@@ -1212,10 +1245,10 @@ public class MyTransform : IEnumerable
     //
     // Devuelve:
     //     Transform child by index.
-    
+
     public MyTransform GetChild(int index)
     {
-        
+
     }
 }
 
