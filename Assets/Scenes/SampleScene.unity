@@ -925,7 +925,8 @@ MonoBehaviour:
   - {fileID: 975622932}
   - {fileID: 1425523882}
   - {fileID: 221915400}
-  piece: {fileID: 1143629234}
+  root: {fileID: 1143629234}
+  rotationTime: 1
 --- !u!4 &1203149702
 Transform:
   m_ObjectHideFlags: 0

@@ -104,7 +104,7 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            return localToWorldMatrix.rotation.eulerAngles;
+            return rotation.eulerAngles;
         }
         set
         {
@@ -198,7 +198,12 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            return localToWorldMatrix.rotation;
+            if (parent != null)
+            {
+                return parent.rotation * localRotation;
+            }
+
+            return localRotation;
         }
         set
         {
@@ -434,28 +439,28 @@ public class MyTransform : IEnumerable
 
         if (worldPositionStays)
         {
-            Mat4x4 worldMatrix = localToWorldMatrix;
+            Vec3 globalPos = position;
+            Quat globalRot = rotation;
+            Vec3 globalScale = lossyScale;
 
             _parent = parent;
 
             if (_parent != null)
             {
-                Mat4x4 newLocalMat;
-
-                Mat4x4 parentWorldToLocal = _parent.worldToLocalMatrix;
-                newLocalMat = parentWorldToLocal * worldMatrix;
-
-                _localPosition = newLocalMat.GetPosition();
-                _localRotation = newLocalMat.rotation;
-                _localScale = newLocalMat.lossyScale;
-
                 _parent._children.Add(this);
+
+                position = globalPos;
+                rotation = globalRot;
+
+                //Vec3 parentLossyScale = _parent.lossyScale;
+
+                //_localScale = new Vec3(globalScale.x / parentLossyScale.x, globalScale.y / parentLossyScale.y, globalScale.z / parentLossyScale.z);
             }
             else
             {
-                _localPosition = worldMatrix.GetPosition();
-                _localRotation = worldMatrix.rotation;
-                _localScale = worldMatrix.lossyScale;
+                position = globalPos;
+                rotation = globalRot;
+                //_localScale = globalScale;
             }
         }
         else
@@ -498,6 +503,7 @@ public class MyTransform : IEnumerable
     //
     //   localRotation:
     //     The local space rotation to apply to the transform.
+
     public void SetLocalPositionAndRotation(Vec3 localPosition, Quat localRotation)
     {
         this.localPosition = localPosition;

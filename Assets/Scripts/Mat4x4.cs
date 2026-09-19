@@ -447,7 +447,7 @@ public class Mat4x4
         Mat4x4 rotation = Mat4x4.Rotate(q);
         Mat4x4 scale = Mat4x4.Scale(s);
 
-        return translation * rotation * scale;
+       return translation * rotation * scale;
     }
 
     #endregion
