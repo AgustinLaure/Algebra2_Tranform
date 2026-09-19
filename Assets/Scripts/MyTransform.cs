@@ -11,22 +11,22 @@ public class MyTransform : IEnumerable
     private class Enumerator : IEnumerator
     {
         private MyTransform outer;
-    
+
         private int currentIndex = -1;
-    
+
         public object Current => outer.GetChild(currentIndex);
-    
+
         internal Enumerator(MyTransform outer)
         {
             this.outer = outer;
         }
-    
+
         public bool MoveNext()
         {
             int childCount = outer.childCount;
             return ++currentIndex < childCount;
         }
-    
+
         public void Reset()
         {
             currentIndex = -1;
@@ -36,18 +36,28 @@ public class MyTransform : IEnumerable
     private const float epsilon = 1e-05f;
 
     private Mat4x4 _worldTRS;
-    private bool _isDirty = false;
+    private bool _isDirty = true;
     private bool _hasChanged = false;
 
     private Vec3 _localPosition;
     private Quat _localRotation;
     private Vec3 _localScale;
     private MyTransform _parent;
-    private List<MyTransform> _children = new List<MyTransform>();
+    public List<MyTransform> _children = new List<MyTransform>();
 
     //
     // Resumen:
     //     The world space position of the Transform.
+
+    public MyTransform(Transform unityTransform)
+    {
+        this.localPosition = unityTransform.localPosition;
+        this.localRotation = unityTransform.localRotation;
+        this.localScale = unityTransform.localScale;
+
+        _isDirty = true;
+    }
+
     public Vec3 position
     {
         get
@@ -272,7 +282,7 @@ public class MyTransform : IEnumerable
     {
         get
         {
-            if (hasChanged)
+            if (_isDirty)
             {
                 Mat4x4 cleanLocal = Mat4x4.TRS(localPosition, localRotation, localScale);
 
@@ -285,7 +295,8 @@ public class MyTransform : IEnumerable
                     _worldTRS = cleanLocal;
                 }
 
-                hasChanged = false;
+                _isDirty = false;
+                hasChanged = true;
             }
 
             return _worldTRS;
@@ -1229,7 +1240,7 @@ public class MyTransform : IEnumerable
     //
     // Devuelve:
     //     The found child transform. Null if child with matching name isn't found.
-    
+
 
     private void SetDirty()
     {
