@@ -476,6 +476,194 @@ public static class Algorithms
 
     #endregion
 
+    #region MergeSort
+
+    //O(n log(n)) divide de forma logaritimica para luego mergear ahi la n. costo computacional
+    //O(n) divide el arreglo en otros arreglos que terminan ocupando el tamaño del arreglo original. costo en memoria
+    public static void MergeSortArray<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        MergeSort(array, 0, array.Length - 1, dir);
+    }
+
+    static void MergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
+    {
+        //Detiene la recursividad si left y right son iguales
+        if (left < right)
+        {
+            int middle = (left + right) / 2;
+
+            MergeSort(array, left, middle, direction);
+            MergeSort(array, middle + 1, right, direction);
+
+            Merge(array, left, middle, right, direction);
+        }
+    }
+
+    //mergea 2 mitades ya ordenadas en una sola 
+    static void Merge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
+    {
+        //calcula cuantos elementos tiene cada mitad
+        int n1 = middle - left + 1;
+        int n2 = right - middle;
+
+        T[] leftAux = new T[n1];
+        T[] rightAux = new T[n2];
+
+        int i = 0;
+        int j = 0;
+
+        for (i = 0; i < n1; ++i)
+        {
+            leftAux[i] = array[left + i];
+        }
+
+        for (j = 0; j < n2; ++j)
+        {
+            rightAux[j] = array[middle + 1 + j];
+        }
+
+        i = 0;
+        j = 0;
+
+        int k = left;
+
+        //k es la posicion en el array actual
+        //mientras los 2 arrays aux no hayan llegado a su maximo
+        while (i < n1 && j < n2)
+        {
+            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
+            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
+            {
+                array[k] = leftAux[i];
+                i++;
+            }
+            else
+            {
+                array[k] = rightAux[j];
+                j++;
+            }
+            k++;
+        }
+
+        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
+
+        while (i < n1)
+        {
+            array[k] = leftAux[i];
+            i++;
+            k++;
+        }
+
+        while (j < n2)
+        {
+            array[k] = rightAux[j];
+            j++;
+            k++;
+        }
+    }
+
+    #endregion
+
+    #region AdaptiveMergeSort
+
+    //O(n log(n)) igual que el mergeSort, ya que depende como este desordenado
+    //O(n) costo en memoria
+    public static void AdaptiveMergeSortArray<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        MergeSort(array, 0, array.Length - 1, dir);
+    }
+
+    static void AdaptiveMergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
+    {
+        //Detiene la recursividad si left y right son iguales
+        if (left < right)
+        {
+            int middle = (left + right) / 2;
+
+            AdaptiveMergeSort(array, left, middle, direction);
+            AdaptiveMergeSort(array, middle + 1, right, direction);
+
+            //a diferencia del normal compara los valores de los bordes del grupo para ver si ya estan ordenados
+            int borderComparison = array[middle].CompareTo(array[middle + 1]) * direction;
+
+            if (borderComparison <= 0)
+            {
+                return;
+            }
+
+            AdaptiveMerge(array, left, middle, right, direction);
+        }
+    }
+
+    //mergea 2 mitades ya ordenadas en una sola 
+    static void AdaptiveMerge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
+    {
+        //calcula cuantos elementos tiene cada mitad
+        int n1 = middle - left + 1;
+        int n2 = right - middle;
+
+        T[] leftAux = new T[n1];
+        T[] rightAux = new T[n2];
+
+        int i = 0;
+        int j = 0;
+
+        for (i = 0; i < n1; ++i)
+        {
+            leftAux[i] = array[left + i];
+        }
+
+        for (j = 0; j < n2; ++j)
+        {
+            rightAux[j] = array[middle + 1 + j];
+        }
+
+        i = 0;
+        j = 0;
+
+        int k = left;
+
+        //k es la posicion en el array actual
+        //mientras los 2 arrays aux no hayan llegado a su maximo
+        while (i < n1 && j < n2)
+        {
+            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
+            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
+            {
+                array[k] = leftAux[i];
+                i++;
+            }
+            else
+            {
+                array[k] = rightAux[j];
+                j++;
+            }
+            k++;
+        }
+
+        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
+
+        while (i < n1)
+        {
+            array[k] = leftAux[i];
+            i++;
+            k++;
+        }
+
+        while (j < n2)
+        {
+            array[k] = rightAux[j];
+            j++;
+            k++;
+        }
+    }
+
+    #endregion
+
     private static void Swap<T>(T[] array, int i, int j)
     {
         T temp = array[i];

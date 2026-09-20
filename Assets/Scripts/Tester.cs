@@ -63,9 +63,14 @@ public class Tester : MonoBehaviour
         Algorithms.RadixSortMSD(radixSortMSD);
         Debug.Log(radixSortMSD);
 
-        int[] introSort = new int[maxElements];
-        Array.Copy(order, introSort, order.Length);
-        Algorithms.IntroSort(introSort);
-        Debug.Log(introSort);
+        int[] mergeSort = new int[maxElements];
+        Array.Copy(order, mergeSort, order.Length);
+        Algorithms.MergeSortArray(mergeSort,1);
+        Debug.Log(mergeSort);
+
+        int[] adaptiveMergeSort = new int[maxElements];
+        Array.Copy(order, adaptiveMergeSort, order.Length);
+        Algorithms.AdaptiveMergeSortArray(adaptiveMergeSort, 1);
+        Debug.Log(adaptiveMergeSort);
     }
 }
