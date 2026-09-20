@@ -1,4 +1,6 @@
 using System;
+using System.Runtime.ExceptionServices;
+using Unity.Burst.Intrinsics;
 using UnityEngine;
 
 public static class Algorithms
@@ -218,6 +220,81 @@ public static class Algorithms
             // ordena los elementos mayores y menores al pivot respectivamente
             QuickSort(array, low, pivot - 1, direction);
             QuickSort(array, pivot + 1, high, direction);
+        }
+    }
+
+    #endregion
+
+    #region RadixSortLSD
+
+    //O(d * (n+10)) costo computacional, hace d pasadas en las que recorre elementos(n) e itera un for de 10
+    //d cantidad de digitos del numero mas grande
+
+    //O(n+10) costo de memoria cada bucket de 10 y copiar en un array para reordenar
+
+    public static void RadixSortLSD(int[] array)
+    {
+        int max = GetMax(array, array.Length);
+
+        //ordena el array segun exponente
+        for (int exponent = 1; max / exponent > 0; exponent *= 10)
+        {
+            CountSort(array, exponent);
+        }
+    }
+
+    public static int GetMax(int[] array, int n)
+    {
+        int max = array[0];
+
+        for (int i = 1; i < n; i++)
+        {
+            if (array[i] > max)
+            {
+                max = array[i];
+            }
+        }
+
+        return max;
+    }
+
+   //hace el sort segun
+    public static void CountSort(int[] array, int exp)
+    {
+        int arrayLength = array.Length;
+
+        int[] output = new int[arrayLength];
+        int[] count = new int[10];
+
+        for (int i = 0; i < 10; i++)
+        {
+            count[i] = 0;
+        }
+
+       //calcula cuantos de cada digito hay teniendo en cuenta el exp en que estamos
+        for (int i = 0; i < arrayLength; i++)
+        {
+            count[(array[i] / exp) % 10]++;
+        }
+
+        //calcula cual es la posicion maxima que puede tener cada digito
+        //cada digito 'empuja' al siguiente
+        for (int i = 1; i < 10; i++)
+        {
+            count[i] += count[i - 1];
+        }
+
+       //en base a estos count calculados asigna a cada valor que posicion le corresponderia
+       //segun el valor de su exponente
+        for (int i = arrayLength - 1; i >= 0; i--)
+        {
+            output[count[(array[i] / exp) % 10] - 1] = array[i];
+            count[(array[i] / exp) % 10]--;
+        }
+
+        for (int i = 0; i < arrayLength; i++)
+        {
+            array[i] = output[i];
         }
     }
 
