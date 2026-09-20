@@ -1,10 +1,10 @@
 using System;
-using System.Runtime.ExceptionServices;
-using Unity.Burst.Intrinsics;
 using UnityEngine;
 
 public static class Algorithms
 {
+    private static readonly System.Random rng = new System.Random();
+
     #region Bitonic
     //O(n log^2(n)) costo computacional
     //O(log(n)) costo en memoria
@@ -258,7 +258,7 @@ public static class Algorithms
         return max;
     }
 
-   //hace el sort segun
+    //hace el sort segun
     public static void CountSort(int[] array, int exp)
     {
         int arrayLength = array.Length;
@@ -271,7 +271,7 @@ public static class Algorithms
             count[i] = 0;
         }
 
-       //calcula cuantos de cada digito hay teniendo en cuenta el exp en que estamos
+        //calcula cuantos de cada digito hay teniendo en cuenta el exp en que estamos
         for (int i = 0; i < arrayLength; i++)
         {
             count[(array[i] / exp) % 10]++;
@@ -284,8 +284,8 @@ public static class Algorithms
             count[i] += count[i - 1];
         }
 
-       //en base a estos count calculados asigna a cada valor que posicion le corresponderia
-       //segun el valor de su exponente
+        //en base a estos count calculados asigna a cada valor que posicion le corresponderia
+        //segun el valor de su exponente
         for (int i = arrayLength - 1; i >= 0; i--)
         {
             output[count[(array[i] / exp) % 10] - 1] = array[i];
@@ -296,6 +296,182 @@ public static class Algorithms
         {
             array[i] = output[i];
         }
+    }
+
+    #endregion
+
+    #region RadixSortMSD
+
+    //O(cantidad de digitos * cantidad de elementos). por cada digito debe recorrer las buckets revisando el orden en cada exponente.costo computacional
+    //O(cantidad de digitos) costo en memoria
+
+    //Ordena en el orden contrario a LSD, primero revisa las centenas luego las decenas etc.
+    public static void RadixSortMSD(int[] array)
+    {
+        int max = GetMax(array, array.Length);
+
+        int exp = 1;
+        while (max / exp >= 10)
+        {
+            exp *= 10;
+        }
+
+        MSDRecursive(array, 0, array.Length - 1, exp);
+    }
+    private static void MSDRecursive(int[] array, int low, int high, int exp)
+    {
+        if (low >= high || exp == 0)
+        {
+            return;
+        }
+
+        int[] output = new int[high - low + 1];
+        int[] count = new int[10];
+        int[] bucketSizes = new int[10];
+
+        for (int i = low; i <= high; i++)
+        {
+            int digit = (array[i] / exp) % 10;
+            count[digit]++;
+            bucketSizes[digit]++;
+        }
+
+        for (int i = 1; i < 10; i++)
+        {
+            count[i] += count[i - 1];
+        }
+
+        for (int i = high; i >= low; i--)
+        {
+            int digit = (array[i] / exp) % 10;
+            output[count[digit] - 1] = array[i];
+            count[digit]--;
+        }
+
+        for (int i = 0; i < output.Length; i++)
+        {
+            array[low + i] = output[i];
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            //Permite ordenar por exponentes mas grandes primero e iterar sobre los chicos si ambos comparten exponente
+            if (bucketSizes[i] > 1)
+            {
+                int bucketStart = low + count[i];
+                int bucketEnd = bucketStart + bucketSizes[i] - 1;
+
+                MSDRecursive(array, bucketStart, bucketEnd, exp / 10);
+            }
+        }
+    }
+
+    #endregion
+
+    #region ShellSort
+
+    //O(n log(n) en el mejor de los casos y O(n^2) en el peor. costo computacional
+    //O(1) costo en memoria 
+
+    //es como el insertion sort pero utiliza gaps para asi mantener los valores mas grandes de un lado y los mas chicos del otro hasta resolver
+    public static void ShellSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        //calcula el gap actual segun la longitud del array
+        for (int gap = array.Length / 2; gap > 0; gap /= 2)
+        {
+            //hace la insercion segun el gap que haya
+            for (int i = gap; i < array.Length; i++)
+            {
+                T temp = array[i];
+                int j = i;
+
+                //mueve hacia la derecha teniendo en cuenta el gap
+                while (j >= gap && array[j - gap].CompareTo(temp) * dir > 0)
+                {
+                    array[j] = array[j - gap];
+                    j -= gap;
+                }
+
+                array[j] = temp;
+            }
+        }
+    }
+
+    #endregion
+
+    #region InsertionSort
+
+    //O(n^2) en el peor de los casos o O(n) en el mejor de los casos. costo computacional
+    //O(1) costo en memoria
+
+    //inserta segun el valor a la izquierda o derecha segun corresponda
+    public static void InsertionSort<T>(T[] array, int direction) where T : IComparable
+    {
+        for (int i = 1; i < array.Length; i++)
+        {
+            T current = array[i];
+            int j = i - 1;
+
+            //empuja los valores mayores a la derecha para hacerse 'hueco'
+            while (j >= 0 && (array[j].CompareTo(current) * direction > 0))
+            {
+                array[j + 1] = array[j];
+                j--;
+            }
+
+            //guarda el valor cacheado en ese hueco
+            array[j + 1] = current;
+        }
+    }
+
+    #endregion
+
+    #region BogoSort
+
+    //O(infinito) costo computacional
+    //O(1) costo en memoria
+
+    public static void BogoSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        while (!IsSorted(array, dir))
+        {
+            Shuffle(array);
+        }
+    }
+
+    public static bool IsSorted<T>(T[] array, int direction) where T : IComparable
+    {
+        for (int i = 0; i < array.Length - 1; i++)
+        {
+            if (array[i].CompareTo(array[i + 1]) * direction > 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public static void Shuffle<T>(T[] array) where T : IComparable
+    {
+        for (int i = 0; i < array.Length; i++)
+        {
+            int j = rng.Next(0, array.Length);
+            Swap(array, i, j);
+        }
+    }
+
+    #endregion
+
+    #region IntroSort
+
+    public static void IntroSort<T>(T[] array) where T : IComparable
+    {
+
     }
 
     #endregion

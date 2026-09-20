@@ -42,5 +42,30 @@ public class Tester : MonoBehaviour
         Array.Copy(order, radixSortLSD, order.Length);
         Algorithms.RadixSortLSD(radixSortLSD);
         Debug.Log(radixSortLSD);
+
+        int[] insertionSort = new int[maxElements];
+        Array.Copy(order, insertionSort, order.Length);
+        Algorithms.InsertionSort(insertionSort, 1);
+        Debug.Log(insertionSort);
+
+        int[] shellSort = new int[maxElements];
+        Array.Copy(order, shellSort, order.Length);
+        Algorithms.ShellSort(shellSort, 1);
+        Debug.Log(shellSort);
+
+        int[] bogoSort = new int[maxElements];
+        Array.Copy(order, bogoSort, order.Length);
+        Algorithms.BogoSort(bogoSort, 1);
+        Debug.Log(bogoSort);
+
+        int[] radixSortMSD = new int[maxElements];
+        Array.Copy(order, radixSortMSD, order.Length);
+        Algorithms.RadixSortMSD(radixSortMSD);
+        Debug.Log(radixSortMSD);
+
+        int[] introSort = new int[maxElements];
+        Array.Copy(order, introSort, order.Length);
+        Algorithms.IntroSort(introSort);
+        Debug.Log(introSort);
     }
 }
