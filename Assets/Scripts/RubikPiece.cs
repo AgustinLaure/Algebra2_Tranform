@@ -25,7 +25,7 @@ public class RubikPiece : MonoBehaviour
     {
         Graphics.DrawMesh(mesh, myTransform.localToWorldMatrix, mat, gameObject.layer);
 
-        Debug.Log(myTransform.localScale.x + " - " + myTransform.localScale.y + " - " + myTransform.localScale.z);
+        //Debug.Log(myTransform.localScale.x + " - " + myTransform.localScale.y + " - " + myTransform.localScale.z);
 
         if (transform.hasChanged)
         {

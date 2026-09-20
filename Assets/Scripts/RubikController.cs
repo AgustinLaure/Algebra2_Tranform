@@ -23,14 +23,6 @@ public class RubikController : MonoBehaviour
 
     private const float epsilon = 0.01f;
 
-    [SerializeField] private RubikPiece smaller;
-    [SerializeField] private RubikPiece normal;
-
-    private MyTransform smallerMyTransform;
-    private MyTransform normalMyTransform;
-
-    [SerializeField] private Transform axisTestTransform;
-
     enum Pieces
     {
         Root,
@@ -60,23 +52,10 @@ public class RubikController : MonoBehaviour
         {
             piecesTransform[i].SetParent(rootTransform);
         }
-
-        smallerMyTransform = smaller.myTransform;
-        normalMyTransform = normal.myTransform;
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(KeyCode.K))
-        {
-            normalMyTransform.SetParent(smallerMyTransform);
-        }
-
-        if (Input.GetKeyDown(KeyCode.L))
-        {
-            
-        }
-
         if (Input.GetKeyDown(KeyCode.Alpha1))
         {
             currentAxis = piecesTransform[1];
@@ -163,7 +142,7 @@ public class RubikController : MonoBehaviour
         
         currentAxis.Rotate(rootDirection, snapDifference, Space.World);
 
-        yield return new WaitForSeconds(2F);
+        //yield return new WaitForSeconds(2F);
 
         for (int i = 0; i < toRotate.Count; i++)
         {

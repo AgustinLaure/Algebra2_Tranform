@@ -13,6 +13,46 @@ public class Tester : MonoBehaviour
 
     private void Start()
     {
+        int[] radixSortMSD = new int[maxElements];
+        Array.Copy(order, radixSortMSD, order.Length);
+        Algorithms.RadixSortMSD(radixSortMSD);
+        Debug.Log(radixSortMSD);
+
+        int[] radixSortLSD = new int[maxElements];
+        Array.Copy(order, radixSortLSD, order.Length);
+        Algorithms.RadixSortLSD(radixSortLSD);
+        Debug.Log(radixSortLSD);
+
+        int[] introSort = new int[maxElements];
+        Array.Copy(order, introSort, order.Length);
+        Algorithms.IntroSort(introSort, -1);
+        Debug.Log(introSort);
+
+        int[] quickSort = new int[maxElements];
+        Array.Copy(order, quickSort, order.Length);
+        Algorithms.QuickSortArray<int>(quickSort, 1);
+        Debug.Log(quickSort);
+
+        int[] adaptiveMergeSort = new int[maxElements];
+        Array.Copy(order, adaptiveMergeSort, order.Length);
+        Algorithms.AdaptiveMergeSortArray(adaptiveMergeSort, 1);
+        Debug.Log(adaptiveMergeSort);
+
+        int[] mergeSort = new int[maxElements];
+        Array.Copy(order, mergeSort, order.Length);
+        Algorithms.MergeSortArray(mergeSort, 1);
+        Debug.Log(mergeSort);
+
+        int[] heapSort = new int[maxElements];
+        Array.Copy(order, heapSort, order.Length);
+        Algorithms.HeapSort(heapSort, 1);
+        Debug.Log(heapSort);
+
+        int[] shellSort = new int[maxElements];
+        Array.Copy(order, shellSort, order.Length);
+        Algorithms.ShellSort(shellSort, 1);
+        Debug.Log(shellSort);
+
         int[] bitonic = new int[maxElements];
         Array.Copy(order, bitonic, order.Length);
         Algorithms.BitonicSortArray<int>(bitonic, 1);
@@ -33,44 +73,19 @@ public class Tester : MonoBehaviour
         Algorithms.CocktailSort<int>(cocktailSort, 1);
         Debug.Log(cocktailSort);
 
-        int[] quickSort = new int[maxElements];
-        Array.Copy(order, quickSort, order.Length);
-        Algorithms.QuickSortArray<int>(quickSort, 1);
-        Debug.Log(quickSort);
-
-        int[] radixSortLSD = new int[maxElements];
-        Array.Copy(order, radixSortLSD, order.Length);
-        Algorithms.RadixSortLSD(radixSortLSD);
-        Debug.Log(radixSortLSD);
-
         int[] insertionSort = new int[maxElements];
         Array.Copy(order, insertionSort, order.Length);
         Algorithms.InsertionSort(insertionSort, 1);
         Debug.Log(insertionSort);
 
-        int[] shellSort = new int[maxElements];
-        Array.Copy(order, shellSort, order.Length);
-        Algorithms.ShellSort(shellSort, 1);
-        Debug.Log(shellSort);
+        int[] gnomeSort = new int[maxElements];
+        Array.Copy(order, gnomeSort, order.Length);
+        Algorithms.GnomeSort(gnomeSort, -1);
+        Debug.Log(gnomeSort);
 
         int[] bogoSort = new int[maxElements];
         Array.Copy(order, bogoSort, order.Length);
         Algorithms.BogoSort(bogoSort, 1);
         Debug.Log(bogoSort);
-
-        int[] radixSortMSD = new int[maxElements];
-        Array.Copy(order, radixSortMSD, order.Length);
-        Algorithms.RadixSortMSD(radixSortMSD);
-        Debug.Log(radixSortMSD);
-
-        int[] mergeSort = new int[maxElements];
-        Array.Copy(order, mergeSort, order.Length);
-        Algorithms.MergeSortArray(mergeSort,1);
-        Debug.Log(mergeSort);
-
-        int[] adaptiveMergeSort = new int[maxElements];
-        Array.Copy(order, adaptiveMergeSort, order.Length);
-        Algorithms.AdaptiveMergeSortArray(adaptiveMergeSort, 1);
-        Debug.Log(adaptiveMergeSort);
     }
 }

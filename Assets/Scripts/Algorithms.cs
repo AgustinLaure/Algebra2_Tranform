@@ -5,6 +5,577 @@ public static class Algorithms
 {
     private static readonly System.Random rng = new System.Random();
 
+    #region RadixSortLSD
+
+    //O(d * (n+10)) costo computacional, hace d pasadas en las que recorre elementos(n) e itera un for de 10
+    //d cantidad de digitos del numero mas grande
+
+    //O(n+10) costo de memoria cada bucket de 10 y copiar en un array para reordenar
+
+    public static void RadixSortLSD(int[] array)
+    {
+        int max = GetMax(array, array.Length);
+
+        //ordena el array segun exponente
+        for (int exponent = 1; max / exponent > 0; exponent *= 10)
+        {
+            CountSort(array, exponent);
+        }
+    }
+
+    public static int GetMax(int[] array, int n)
+    {
+        int max = array[0];
+
+        for (int i = 1; i < n; i++)
+        {
+            if (array[i] > max)
+            {
+                max = array[i];
+            }
+        }
+
+        return max;
+    }
+
+    //hace el sort segun
+    public static void CountSort(int[] array, int exp)
+    {
+        int arrayLength = array.Length;
+
+        int[] output = new int[arrayLength];
+        int[] count = new int[10];
+
+        for (int i = 0; i < 10; i++)
+        {
+            count[i] = 0;
+        }
+
+        //calcula cuantos de cada digito hay teniendo en cuenta el exp en que estamos
+        for (int i = 0; i < arrayLength; i++)
+        {
+            count[(array[i] / exp) % 10]++;
+        }
+
+        //calcula cual es la posicion maxima que puede tener cada digito
+        //cada digito 'empuja' al siguiente
+        for (int i = 1; i < 10; i++)
+        {
+            count[i] += count[i - 1];
+        }
+
+        //en base a estos count calculados asigna a cada valor que posicion le corresponderia
+        //segun el valor de su exponente
+        for (int i = arrayLength - 1; i >= 0; i--)
+        {
+            output[count[(array[i] / exp) % 10] - 1] = array[i];
+            count[(array[i] / exp) % 10]--;
+        }
+
+        for (int i = 0; i < arrayLength; i++)
+        {
+            array[i] = output[i];
+        }
+    }
+
+    #endregion
+
+    #region RadixSortMSD
+
+    //O(cantidad de digitos * cantidad de elementos). por cada digito debe recorrer las buckets revisando el orden en cada exponente.costo computacional
+    //O(cantidad de digitos) costo en memoria
+
+    //Ordena en el orden contrario a LSD, primero revisa las centenas luego las decenas etc.
+    public static void RadixSortMSD(int[] array)
+    {
+        int max = GetMax(array, array.Length);
+
+        int exp = 1;
+        while (max / exp >= 10)
+        {
+            exp *= 10;
+        }
+
+        MSDRecursive(array, 0, array.Length - 1, exp);
+    }
+    private static void MSDRecursive(int[] array, int low, int high, int exp)
+    {
+        if (low >= high || exp == 0)
+        {
+            return;
+        }
+
+        int[] output = new int[high - low + 1];
+        int[] count = new int[10];
+        int[] bucketSizes = new int[10];
+
+        for (int i = low; i <= high; i++)
+        {
+            int digit = (array[i] / exp) % 10;
+            count[digit]++;
+            bucketSizes[digit]++;
+        }
+
+        for (int i = 1; i < 10; i++)
+        {
+            count[i] += count[i - 1];
+        }
+
+        for (int i = high; i >= low; i--)
+        {
+            int digit = (array[i] / exp) % 10;
+            output[count[digit] - 1] = array[i];
+            count[digit]--;
+        }
+
+        for (int i = 0; i < output.Length; i++)
+        {
+            array[low + i] = output[i];
+        }
+
+        for (int i = 0; i < 10; i++)
+        {
+            //Permite ordenar por exponentes mas grandes primero e iterar sobre los chicos si ambos comparten exponente
+            if (bucketSizes[i] > 1)
+            {
+                int bucketStart = low + count[i];
+                int bucketEnd = bucketStart + bucketSizes[i] - 1;
+
+                MSDRecursive(array, bucketStart, bucketEnd, exp / 10);
+            }
+        }
+    }
+
+    #endregion
+
+    #region IntroSort
+
+    //O(n log(n)) garantizado siempre, es por esto que se calcula la depthmax costo computacional
+    //O(log(n)) las recursivas de heap y quick sort costo de memoria
+
+    public static void IntroSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        //funciona como un limite para calcular la recursividad del quicksort y frenarla para usar un algoritmo que maneje mejor este caso
+        int depthMax = (int)(2 * Math.Log(array.Length, 2));
+
+        IntroSortInternal(array, 0, array.Length - 1, depthMax, dir);
+    }
+
+    //resuelve el ordenamiento segun cual seria el algoritmo mas optimo en cada caso
+    private static void IntroSortInternal<T>(T[] array, int low, int high, int depthMax, int direction) where T : IComparable
+    {
+        int size = high - low + 1;
+
+        //si el segmento es muy chico usa insertion
+        if (size < 16)
+        {
+            InsertionSortRange(array, low, high, direction);
+            return;
+        }
+
+        //si la recursividad es muy profunda usa heap sort
+        if (depthMax == 0)
+        {
+            HeapSortRange(array, low, high, direction);
+            return;
+        }
+
+        //si la recursividad no es muy profunda pero son suficientes elementos usa quick sort
+        int pivotIndex = Divide(array, low, high, direction);
+
+        IntroSortInternal(array, low, pivotIndex - 1, depthMax - 1, direction);
+        IntroSortInternal(array, pivotIndex + 1, high, depthMax - 1, direction);
+    }
+
+    private static void InsertionSortRange<T>(T[] array, int low, int high, int direction) where T : IComparable
+    {
+        for (int i = low + 1; i <= high; i++)
+        {
+            T current = array[i];
+            int j = i - 1;
+
+            while (j >= low && (array[j].CompareTo(current) * direction > 0))
+            {
+                array[j + 1] = array[j];
+                j--;
+            }
+
+            array[j + 1] = current;
+        }
+    }
+
+    public static void HeapSortRange<T>(T[] array, int low, int high, int direction) where T : IComparable
+    {
+        int range = high - low + 1;
+        int dir = (int)Mathf.Sign(direction);
+
+        for (int i = range / 2 - 1; i >= 0; i--)
+        {
+            HeapifyRange(array, range, i, low, dir);
+        }
+
+        for (int i = range - 1; i > 0; i--)
+        {
+            Swap(array, low, low + i);
+            HeapifyRange(array, i, 0, low, dir);
+        }
+    }
+
+    public static void HeapifyRange<T>(T[] array, int n, int i, int low, int direction) where T : IComparable
+    {
+        int largest = i;
+        int leftSon = 2 * i + 1;
+        int rightSon = 2 * i + 2;
+
+        if (leftSon < n && array[low + leftSon].CompareTo(array[low + largest]) * direction > 0)
+        {
+            largest = leftSon;
+        }
+
+        if (rightSon < n && array[low + rightSon].CompareTo(array[low + largest]) * direction > 0)
+        {
+            largest = rightSon;
+        }
+
+        if (largest != i)
+        {
+            Swap(array, low + i, low + largest);
+            HeapifyRange(array, n, largest, low, direction);
+        }
+    }
+
+    #endregion
+
+    #region QuickSort
+
+    //O(n log(n)) en el mejor de los casos y 0(n^2) en el peor, cuando el mas grande o mas chico se selecciona siempre como pivote. costo computacional
+    //O(log(n)) costo memoria y O(n) en el peor de los casos. 
+
+    public static void QuickSortArray<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        QuickSort(array, 0, array.Length - 1, dir);
+    }
+
+    // mueve los valores alrededor del pivote, haciendo que los menores vayan de un lado y lo mayores de otro
+    private static int Divide<T>(T[] array, int low, int high, int direction) where T : IComparable
+    {
+        T pivot = array[high];
+
+        // la posicion de la 'frontera' del mas chico
+        int i = low - 1;
+
+        //mueve los elementos mas chicos y desplaza la frontera
+        for (int j = low; j <= high - 1; j++)
+        {
+            int comparison = array[j].CompareTo(pivot);
+            if (comparison * direction < 0)
+            {
+                i++;
+                Swap(array, i, j);
+            }
+        }
+
+        //mueve al pivot adelante de la frontera
+        Swap(array, i + 1, high);
+
+        return i + 1;
+    }
+
+    //ordena los mayores y menores al rededor del pivot de forma recursiva hasta que ya no hay mas que ordenar
+    private static void QuickSort<T>(T[] array, int low, int high, int direction) where T : IComparable
+    {
+        if (low < high)
+        {
+            int pivot = Divide(array, low, high, direction);
+
+            // ordena los elementos mayores y menores al pivot respectivamente
+            QuickSort(array, low, pivot - 1, direction);
+            QuickSort(array, pivot + 1, high, direction);
+        }
+    }
+
+    #endregion
+
+    #region MergeSort
+
+    //O(n log(n)) divide de forma logaritimica para luego mergear ahi la n. costo computacional
+    //O(n) divide el arreglo en otros arreglos que terminan ocupando el tamaño del arreglo original. costo en memoria
+    public static void MergeSortArray<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        MergeSort(array, 0, array.Length - 1, dir);
+    }
+
+    static void MergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
+    {
+        //Detiene la recursividad si left y right son iguales
+        if (left < right)
+        {
+            int middle = (left + right) / 2;
+
+            MergeSort(array, left, middle, direction);
+            MergeSort(array, middle + 1, right, direction);
+
+            Merge(array, left, middle, right, direction);
+        }
+    }
+
+    //mergea 2 mitades ya ordenadas en una sola 
+    static void Merge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
+    {
+        //calcula cuantos elementos tiene cada mitad
+        int n1 = middle - left + 1;
+        int n2 = right - middle;
+
+        T[] leftAux = new T[n1];
+        T[] rightAux = new T[n2];
+
+        int i = 0;
+        int j = 0;
+
+        for (i = 0; i < n1; ++i)
+        {
+            leftAux[i] = array[left + i];
+        }
+
+        for (j = 0; j < n2; ++j)
+        {
+            rightAux[j] = array[middle + 1 + j];
+        }
+
+        i = 0;
+        j = 0;
+
+        int k = left;
+
+        //k es la posicion en el array actual
+        //mientras los 2 arrays aux no hayan llegado a su maximo
+        while (i < n1 && j < n2)
+        {
+            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
+            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
+            {
+                array[k] = leftAux[i];
+                i++;
+            }
+            else
+            {
+                array[k] = rightAux[j];
+                j++;
+            }
+            k++;
+        }
+
+        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
+
+        while (i < n1)
+        {
+            array[k] = leftAux[i];
+            i++;
+            k++;
+        }
+
+        while (j < n2)
+        {
+            array[k] = rightAux[j];
+            j++;
+            k++;
+        }
+    }
+
+    #endregion
+
+    #region AdaptiveMergeSort
+
+    //O(n log(n)) igual que el mergeSort, ya que depende como este desordenado
+    //O(n) costo en memoria
+    public static void AdaptiveMergeSortArray<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        AdaptiveMergeSort(array, 0, array.Length - 1, dir);
+    }
+
+    static void AdaptiveMergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
+    {
+        //Detiene la recursividad si left y right son iguales
+        if (left < right)
+        {
+            int middle = (left + right) / 2;
+
+            AdaptiveMergeSort(array, left, middle, direction);
+            AdaptiveMergeSort(array, middle + 1, right, direction);
+
+            //a diferencia del normal compara los valores de los bordes del grupo para ver si ya estan ordenados
+            int borderComparison = array[middle].CompareTo(array[middle + 1]) * direction;
+
+            if (borderComparison <= 0)
+            {
+                return;
+            }
+
+            AdaptiveMerge(array, left, middle, right, direction);
+        }
+    }
+
+    //mergea 2 mitades ya ordenadas en una sola 
+    static void AdaptiveMerge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
+    {
+        //calcula cuantos elementos tiene cada mitad
+        int n1 = middle - left + 1;
+        int n2 = right - middle;
+
+        T[] leftAux = new T[n1];
+        T[] rightAux = new T[n2];
+
+        int i = 0;
+        int j = 0;
+
+        for (i = 0; i < n1; ++i)
+        {
+            leftAux[i] = array[left + i];
+        }
+
+        for (j = 0; j < n2; ++j)
+        {
+            rightAux[j] = array[middle + 1 + j];
+        }
+
+        i = 0;
+        j = 0;
+
+        int k = left;
+
+        //k es la posicion en el array actual
+        //mientras los 2 arrays aux no hayan llegado a su maximo
+        while (i < n1 && j < n2)
+        {
+            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
+            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
+            {
+                array[k] = leftAux[i];
+                i++;
+            }
+            else
+            {
+                array[k] = rightAux[j];
+                j++;
+            }
+            k++;
+        }
+
+        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
+
+        while (i < n1)
+        {
+            array[k] = leftAux[i];
+            i++;
+            k++;
+        }
+
+        while (j < n2)
+        {
+            array[k] = rightAux[j];
+            j++;
+            k++;
+        }
+    }
+
+    #endregion
+
+    #region HeapSort
+
+    //O(n log(n)) porque llama a heapify una cantidad de veces y heapify escala logaritmico costo computacional
+    //O(log(n)) al llamarse de forma recursiva por cada heapify costo en memoria
+
+    //utiliza una estructura de max heap, el padre siempre tiene que ser mas grande o igual que sus hijos
+    //el hijo izquierdo de un elemento en el índice i está en 2i + 1
+    //el hijo derecho está en 2i + 2.
+
+    //como el numero mas grande siempre va a estar en la cima, se toma ese numero y se envia al final de la lista por cada elemento
+    public static void HeapSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        //hace un max heap de la mitad del array para sacar
+        for (int i = array.Length / 2 - 1; i >= 0; i--)
+        {
+            Heapify(array, array.Length, i, dir);
+        }
+
+        //empezando por el final intercambia el elemento 0 que luego de hacer el max heap seria el mas grande y asi toma uno de los elementos no ordenados de la otra mitad
+        for (int i = array.Length - 1; i > 0; i--)
+        {
+            Swap(array, 0, i);
+            Heapify(array, i, 0, dir);
+        }
+    }
+    public static void Heapify<T>(T[] array, int n, int i, int direction) where T : IComparable
+    {
+        int largest = i;
+
+        int leftSon = 2 * i + 1;
+        int rightSon = 2 * i + 2;
+
+        //revisa si uno de los hijos es mayor que el
+
+        if (leftSon < n && array[leftSon].CompareTo(array[largest]) * direction > 0)
+        {
+            largest = leftSon;
+        }
+
+        if (rightSon < n && array[rightSon].CompareTo(array[largest]) * direction > 0)
+        {
+            largest = rightSon;
+        }
+
+        //si es mayor que el se intercambia con el, y busca de forma recursiva en sus hijos para arreglar en caso de que este cambio haya roto la estructura
+        if (largest != i)
+        {
+            Swap(array, i, largest);
+            Heapify(array, n, largest, direction);
+        }
+    }
+    #endregion
+
+    #region ShellSort
+
+    //O(n log(n) en el mejor de los casos y O(n^2) en el peor. costo computacional
+    //O(1) costo en memoria 
+
+    //es como el insertion sort pero utiliza gaps para asi mantener los valores mas grandes de un lado y los mas chicos del otro hasta resolver
+    public static void ShellSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        //calcula el gap actual segun la longitud del array
+        for (int gap = array.Length / 2; gap > 0; gap /= 2)
+        {
+            //hace la insercion segun el gap que haya
+            for (int i = gap; i < array.Length; i++)
+            {
+                T temp = array[i];
+                int j = i;
+
+                //mueve hacia la derecha teniendo en cuenta el gap
+                while (j >= gap && array[j - gap].CompareTo(temp) * dir > 0)
+                {
+                    array[j] = array[j - gap];
+                    j -= gap;
+                }
+
+                array[j] = temp;
+            }
+        }
+    }
+
+    #endregion
+
     #region Bitonic
     //O(n log^2(n)) costo computacional
     //O(log(n)) costo en memoria
@@ -173,234 +744,6 @@ public static class Algorithms
 
     #endregion
 
-    #region QuickSort
-
-    //O(n log(n)) en el mejor de los casos y 0(n^2) en el peor, cuando el mas grande o mas chico se selecciona siempre como pivote. costo computacional
-    //O(log(n)) costo memoria y O(n) en el peor de los casos. 
-
-    public static void QuickSortArray<T>(T[] array, int direction) where T : IComparable
-    {
-        int dir = 1 * (int)Mathf.Sign(direction);
-
-        QuickSort(array, 0, array.Length - 1, dir);
-    }
-
-    // mueve los valores alrededor del pivote, haciendo que los menores vayan de un lado y lo mayores de otro
-    private static int Divide<T>(T[] array, int low, int high, int direction) where T : IComparable
-    {
-        T pivot = array[high];
-
-        // la posicion de la 'frontera' del mas chico
-        int i = low - 1;
-
-        //mueve los elementos mas chicos y desplaza la frontera
-        for (int j = low; j <= high - 1; j++)
-        {
-            int comparison = array[j].CompareTo(pivot);
-            if (comparison * direction < 0)
-            {
-                i++;
-                Swap(array, i, j);
-            }
-        }
-
-        //mueve al pivot adelante de la frontera
-        Swap(array, i + 1, high);
-
-        return i + 1;
-    }
-
-    //ordena los mayores y menores al rededor del pivot de forma recursiva hasta que ya no hay mas que ordenar
-    private static void QuickSort<T>(T[] array, int low, int high, int direction) where T : IComparable
-    {
-        if (low < high)
-        {
-            int pivot = Divide(array, low, high, direction);
-
-            // ordena los elementos mayores y menores al pivot respectivamente
-            QuickSort(array, low, pivot - 1, direction);
-            QuickSort(array, pivot + 1, high, direction);
-        }
-    }
-
-    #endregion
-
-    #region RadixSortLSD
-
-    //O(d * (n+10)) costo computacional, hace d pasadas en las que recorre elementos(n) e itera un for de 10
-    //d cantidad de digitos del numero mas grande
-
-    //O(n+10) costo de memoria cada bucket de 10 y copiar en un array para reordenar
-
-    public static void RadixSortLSD(int[] array)
-    {
-        int max = GetMax(array, array.Length);
-
-        //ordena el array segun exponente
-        for (int exponent = 1; max / exponent > 0; exponent *= 10)
-        {
-            CountSort(array, exponent);
-        }
-    }
-
-    public static int GetMax(int[] array, int n)
-    {
-        int max = array[0];
-
-        for (int i = 1; i < n; i++)
-        {
-            if (array[i] > max)
-            {
-                max = array[i];
-            }
-        }
-
-        return max;
-    }
-
-    //hace el sort segun
-    public static void CountSort(int[] array, int exp)
-    {
-        int arrayLength = array.Length;
-
-        int[] output = new int[arrayLength];
-        int[] count = new int[10];
-
-        for (int i = 0; i < 10; i++)
-        {
-            count[i] = 0;
-        }
-
-        //calcula cuantos de cada digito hay teniendo en cuenta el exp en que estamos
-        for (int i = 0; i < arrayLength; i++)
-        {
-            count[(array[i] / exp) % 10]++;
-        }
-
-        //calcula cual es la posicion maxima que puede tener cada digito
-        //cada digito 'empuja' al siguiente
-        for (int i = 1; i < 10; i++)
-        {
-            count[i] += count[i - 1];
-        }
-
-        //en base a estos count calculados asigna a cada valor que posicion le corresponderia
-        //segun el valor de su exponente
-        for (int i = arrayLength - 1; i >= 0; i--)
-        {
-            output[count[(array[i] / exp) % 10] - 1] = array[i];
-            count[(array[i] / exp) % 10]--;
-        }
-
-        for (int i = 0; i < arrayLength; i++)
-        {
-            array[i] = output[i];
-        }
-    }
-
-    #endregion
-
-    #region RadixSortMSD
-
-    //O(cantidad de digitos * cantidad de elementos). por cada digito debe recorrer las buckets revisando el orden en cada exponente.costo computacional
-    //O(cantidad de digitos) costo en memoria
-
-    //Ordena en el orden contrario a LSD, primero revisa las centenas luego las decenas etc.
-    public static void RadixSortMSD(int[] array)
-    {
-        int max = GetMax(array, array.Length);
-
-        int exp = 1;
-        while (max / exp >= 10)
-        {
-            exp *= 10;
-        }
-
-        MSDRecursive(array, 0, array.Length - 1, exp);
-    }
-    private static void MSDRecursive(int[] array, int low, int high, int exp)
-    {
-        if (low >= high || exp == 0)
-        {
-            return;
-        }
-
-        int[] output = new int[high - low + 1];
-        int[] count = new int[10];
-        int[] bucketSizes = new int[10];
-
-        for (int i = low; i <= high; i++)
-        {
-            int digit = (array[i] / exp) % 10;
-            count[digit]++;
-            bucketSizes[digit]++;
-        }
-
-        for (int i = 1; i < 10; i++)
-        {
-            count[i] += count[i - 1];
-        }
-
-        for (int i = high; i >= low; i--)
-        {
-            int digit = (array[i] / exp) % 10;
-            output[count[digit] - 1] = array[i];
-            count[digit]--;
-        }
-
-        for (int i = 0; i < output.Length; i++)
-        {
-            array[low + i] = output[i];
-        }
-
-        for (int i = 0; i < 10; i++)
-        {
-            //Permite ordenar por exponentes mas grandes primero e iterar sobre los chicos si ambos comparten exponente
-            if (bucketSizes[i] > 1)
-            {
-                int bucketStart = low + count[i];
-                int bucketEnd = bucketStart + bucketSizes[i] - 1;
-
-                MSDRecursive(array, bucketStart, bucketEnd, exp / 10);
-            }
-        }
-    }
-
-    #endregion
-
-    #region ShellSort
-
-    //O(n log(n) en el mejor de los casos y O(n^2) en el peor. costo computacional
-    //O(1) costo en memoria 
-
-    //es como el insertion sort pero utiliza gaps para asi mantener los valores mas grandes de un lado y los mas chicos del otro hasta resolver
-    public static void ShellSort<T>(T[] array, int direction) where T : IComparable
-    {
-        int dir = 1 * (int)Mathf.Sign(direction);
-
-        //calcula el gap actual segun la longitud del array
-        for (int gap = array.Length / 2; gap > 0; gap /= 2)
-        {
-            //hace la insercion segun el gap que haya
-            for (int i = gap; i < array.Length; i++)
-            {
-                T temp = array[i];
-                int j = i;
-
-                //mueve hacia la derecha teniendo en cuenta el gap
-                while (j >= gap && array[j - gap].CompareTo(temp) * dir > 0)
-                {
-                    array[j] = array[j - gap];
-                    j -= gap;
-                }
-
-                array[j] = temp;
-            }
-        }
-    }
-
-    #endregion
-
     #region InsertionSort
 
     //O(n^2) en el peor de los casos o O(n) en el mejor de los casos. costo computacional
@@ -409,13 +752,15 @@ public static class Algorithms
     //inserta segun el valor a la izquierda o derecha segun corresponda
     public static void InsertionSort<T>(T[] array, int direction) where T : IComparable
     {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
         for (int i = 1; i < array.Length; i++)
         {
             T current = array[i];
             int j = i - 1;
 
             //empuja los valores mayores a la derecha para hacerse 'hueco'
-            while (j >= 0 && (array[j].CompareTo(current) * direction > 0))
+            while (j >= 0 && (array[j].CompareTo(current) * dir > 0))
             {
                 array[j + 1] = array[j];
                 j--;
@@ -423,6 +768,39 @@ public static class Algorithms
 
             //guarda el valor cacheado en ese hueco
             array[j + 1] = current;
+        }
+    }
+
+    #endregion
+
+    #region GnomeSort
+
+    //O(n^2) costo computacional.
+    //O(1) costo en memoria.
+
+    public static void GnomeSort<T>(T[] array, int direction) where T : IComparable
+    {
+        int dir = 1 * (int)Mathf.Sign(direction);
+
+        int index = 0;
+
+        while (index < array.Length)
+        {
+            //Si esta en el primer elemento avanza
+            if (index == 0)
+            {
+                index++;
+            }
+            //Si el valor de atras no es menor al del que estoy parado entonces los ordeno y retrocedo para volver a revisar
+            else if (array[index].CompareTo(array[index - 1]) * dir >= 0)
+            {
+                index++;
+            }
+            else
+            {
+                Swap<T>(array, index, index - 1);
+                index--;
+            }
         }
     }
 
@@ -462,203 +840,6 @@ public static class Algorithms
         {
             int j = rng.Next(0, array.Length);
             Swap(array, i, j);
-        }
-    }
-
-    #endregion
-
-    #region IntroSort
-
-    public static void IntroSort<T>(T[] array) where T : IComparable
-    {
-
-    }
-
-    #endregion
-
-    #region MergeSort
-
-    //O(n log(n)) divide de forma logaritimica para luego mergear ahi la n. costo computacional
-    //O(n) divide el arreglo en otros arreglos que terminan ocupando el tamaño del arreglo original. costo en memoria
-    public static void MergeSortArray<T>(T[] array, int direction) where T : IComparable
-    {
-        int dir = 1 * (int)Mathf.Sign(direction);
-
-        MergeSort(array, 0, array.Length - 1, dir);
-    }
-
-    static void MergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
-    {
-        //Detiene la recursividad si left y right son iguales
-        if (left < right)
-        {
-            int middle = (left + right) / 2;
-
-            MergeSort(array, left, middle, direction);
-            MergeSort(array, middle + 1, right, direction);
-
-            Merge(array, left, middle, right, direction);
-        }
-    }
-
-    //mergea 2 mitades ya ordenadas en una sola 
-    static void Merge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
-    {
-        //calcula cuantos elementos tiene cada mitad
-        int n1 = middle - left + 1;
-        int n2 = right - middle;
-
-        T[] leftAux = new T[n1];
-        T[] rightAux = new T[n2];
-
-        int i = 0;
-        int j = 0;
-
-        for (i = 0; i < n1; ++i)
-        {
-            leftAux[i] = array[left + i];
-        }
-
-        for (j = 0; j < n2; ++j)
-        {
-            rightAux[j] = array[middle + 1 + j];
-        }
-
-        i = 0;
-        j = 0;
-
-        int k = left;
-
-        //k es la posicion en el array actual
-        //mientras los 2 arrays aux no hayan llegado a su maximo
-        while (i < n1 && j < n2)
-        {
-            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
-            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
-            {
-                array[k] = leftAux[i];
-                i++;
-            }
-            else
-            {
-                array[k] = rightAux[j];
-                j++;
-            }
-            k++;
-        }
-
-        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
-
-        while (i < n1)
-        {
-            array[k] = leftAux[i];
-            i++;
-            k++;
-        }
-
-        while (j < n2)
-        {
-            array[k] = rightAux[j];
-            j++;
-            k++;
-        }
-    }
-
-    #endregion
-
-    #region AdaptiveMergeSort
-
-    //O(n log(n)) igual que el mergeSort, ya que depende como este desordenado
-    //O(n) costo en memoria
-    public static void AdaptiveMergeSortArray<T>(T[] array, int direction) where T : IComparable
-    {
-        int dir = 1 * (int)Mathf.Sign(direction);
-
-        MergeSort(array, 0, array.Length - 1, dir);
-    }
-
-    static void AdaptiveMergeSort<T>(T[] array, int left, int right, int direction) where T : IComparable
-    {
-        //Detiene la recursividad si left y right son iguales
-        if (left < right)
-        {
-            int middle = (left + right) / 2;
-
-            AdaptiveMergeSort(array, left, middle, direction);
-            AdaptiveMergeSort(array, middle + 1, right, direction);
-
-            //a diferencia del normal compara los valores de los bordes del grupo para ver si ya estan ordenados
-            int borderComparison = array[middle].CompareTo(array[middle + 1]) * direction;
-
-            if (borderComparison <= 0)
-            {
-                return;
-            }
-
-            AdaptiveMerge(array, left, middle, right, direction);
-        }
-    }
-
-    //mergea 2 mitades ya ordenadas en una sola 
-    static void AdaptiveMerge<T>(T[] array, int left, int middle, int right, int direction) where T : IComparable
-    {
-        //calcula cuantos elementos tiene cada mitad
-        int n1 = middle - left + 1;
-        int n2 = right - middle;
-
-        T[] leftAux = new T[n1];
-        T[] rightAux = new T[n2];
-
-        int i = 0;
-        int j = 0;
-
-        for (i = 0; i < n1; ++i)
-        {
-            leftAux[i] = array[left + i];
-        }
-
-        for (j = 0; j < n2; ++j)
-        {
-            rightAux[j] = array[middle + 1 + j];
-        }
-
-        i = 0;
-        j = 0;
-
-        int k = left;
-
-        //k es la posicion en el array actual
-        //mientras los 2 arrays aux no hayan llegado a su maximo
-        while (i < n1 && j < n2)
-        {
-            //compara los primeros elementos de cada grupo y 'avanza' en ese grupo para comprar de nuevo
-            if (leftAux[i].CompareTo(rightAux[j]) * direction <= 0)
-            {
-                array[k] = leftAux[i];
-                i++;
-            }
-            else
-            {
-                array[k] = rightAux[j];
-                j++;
-            }
-            k++;
-        }
-
-        //si alguno de los 2 termino antes entonces el resto se ponen en ponen el grupo donde corresponde, como ya esta ordenado el grupo no hay problema
-
-        while (i < n1)
-        {
-            array[k] = leftAux[i];
-            i++;
-            k++;
-        }
-
-        while (j < n2)
-        {
-            array[k] = rightAux[j];
-            j++;
-            k++;
         }
     }
 
