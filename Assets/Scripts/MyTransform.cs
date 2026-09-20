@@ -452,15 +452,15 @@ public class MyTransform : IEnumerable
                 position = globalPos;
                 rotation = globalRot;
 
-                //Vec3 parentLossyScale = _parent.lossyScale;
+                Vec3 parentLossyScale = _parent.lossyScale;
 
-                //_localScale = new Vec3(globalScale.x / parentLossyScale.x, globalScale.y / parentLossyScale.y, globalScale.z / parentLossyScale.z);
+                //localScale = new Vec3(globalScale.x / parentLossyScale.x, globalScale.y / parentLossyScale.y, globalScale.z / parentLossyScale.z);
             }
             else
             {
                 position = globalPos;
                 rotation = globalRot;
-                //_localScale = globalScale;
+                //localScale = globalScale;
             }
         }
         else
